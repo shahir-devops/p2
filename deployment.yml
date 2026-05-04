@@ -12,40 +12,40 @@ spec:
     metadata:
       labels:
         app: python
-  spec:
-    volumes:
-    - name:  sqlpvc
-      persistentVolumeClaim:
-        claimName: sqlpv
-    containers:
-    - name: pythonapp2
-      image:  shahir5890/python2:v1.0.version
-      ports:
-      - containerPort: 5000
-      volumeMounts:
+    spec:
+      volumes:
       - name:  sqlpvc
-        mountPath:  /data
-      resources:
-        requests:
-          cpu: 215m
-          memory: 215Mi
-        limits:
-          cpu: 512m
-          memory: 512Mi
-      livenessProbe:
-        httpGet:
-          path: /home
-          port: 5000
-        initialDelaySeconds: 20
-        periodSeconds: 20
-        timeoutSeconds: 20
-      readinessProbe:
-        httpGet:
-          path: /home
-          port: 5000
-        initialDelaySeconds: 20
-        periodSeconds: 20
-        timeoutSeconds: 20
+        persistentVolumeClaim:
+          claimName: sqlpv
+      containers:
+      - name: pythonapp2
+        image:  shahir5890/python2:v1.0.version
+        ports:
+        - containerPort: 5000
+        volumeMounts:
+        - name:  sqlpvc
+          mountPath:  /data
+        resources:
+          requests:
+            cpu: 215m
+            memory: 215Mi
+          limits:
+            cpu: 512m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /home
+            port: 5000
+          initialDelaySeconds: 20
+          periodSeconds: 20
+          timeoutSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /home
+            port: 5000
+          initialDelaySeconds: 20
+          periodSeconds: 20
+          timeoutSeconds: 20
 ---
 apiVersion: v1
 kind: Service
@@ -57,11 +57,11 @@ spec:
   selector: 
     app: python
   ports:
-    port: 80
+  - port: 80
     targetPort: 5000
 ---
 apiVersion: v1
-kind: persistentVolumeClaim
+kind: PersistentVolumeClaim
 metadata:
   name: sqlpv
   namespace: test
