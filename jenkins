@@ -1,0 +1,38 @@
+pipeline{
+    agent any
+    environment{
+        image = "shahir5890/p2"
+        version = "${BUILD_NUMBER}"
+    }
+    
+    stages{
+        stage("checkout_git"){
+            steps{
+                git credentialsId: 'git_user', url: 'https://github.com/shahir-devops/p2.git'
+            }
+        }
+        stage("replace tag"){
+            steps{
+                sh "sed -i 's/version/${version}/g' statefulset.yaml"
+            }
+        }
+        stage("dockerBuild"){
+            steps{
+                sh "docker build -t shahir5890/python2:v1.0.${version} ."
+            }
+        }
+        stage("docker push"){
+            steps{
+                withCredentials([usernamePassword(credentialsId: 'docker_cred', passwordVariable: 'docker_pass', usernameVariable: 'docker_user')]) {
+                  sh "echo ${docker_pass} | docker login -u ${docker_user} --password-stdin"
+                  sh "docker push shahir5890/python2:v1.0.${version}"
+                }
+            }
+        }
+        stage("k8s_deploy"){
+            steps{
+                sh "kubectl apply -f statefulset.yaml"
+            }
+        }
+    }
+}
