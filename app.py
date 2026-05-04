@@ -1,18 +1,17 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template_string
 import sqlite3
-import os
 
 app = Flask(__name__)
 
 DB_PATH = "/data/users.db"
 
 
-def get_db_connection():
+def get_db():
     return sqlite3.connect(DB_PATH, check_same_thread=False)
 
 
 def init_db():
-    conn = get_db_connection()
+    conn = get_db()
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -25,72 +24,78 @@ def init_db():
     conn.commit()
     conn.close()
 
-
 init_db()
 
-# ✅ Insert user
-@app.route("/home", methods=["POST"])
+# 🔹 HTML FORM
+form_html = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Form</title>
+</head>
+<body>
+    <h2>Add User</h2>
+    <form method="post">
+        Name: <input type="text" name="name"><br><br>
+        Phone: <input type="text" name="phone"><br><br>
+        Email: <input type="text" name="email"><br><br>
+        <button type="submit">Submit</button>
+    </form>
+    <br>
+    <a href="/users">View Users</a>
+</body>
+</html>
+"""
+
+# 🔹 HOME PAGE (GET + POST)
+@app.route("/home", methods=["GET", "POST"])
 def home():
-    try:
-        data = request.json
+    if request.method == "POST":
+        name = request.form.get("name")
+        phone = request.form.get("phone")
+        email = request.form.get("email")
 
-        if not data or "name" not in data or "phone" not in data or "email" not in data:
-            return {"error": "Invalid input"}, 400
-
-        conn = get_db_connection()
+        conn = get_db()
         cursor = conn.cursor()
-
         cursor.execute(
             "INSERT INTO users (name, phone, email) VALUES (?, ?, ?)",
-            (data["name"], data["phone"], data["email"])
+            (name, phone, email)
         )
-
         conn.commit()
         conn.close()
 
-        return {"message": "User added successfully"}, 201
+        return "<h3>User added successfully</h3><a href='/home'>Go Back</a>"
 
-    except Exception as e:
-        return {"error": str(e)}, 500
-
-
-# ✅ Get users
-@app.route("/users", methods=["GET"])
-def get_users():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT * FROM users")
-        rows = cursor.fetchall()
-
-        conn.close()
-
-        users = []
-        for row in rows:
-            users.append({
-                "id": row[0],
-                "name": row[1],
-                "phone": row[2],
-                "email": row[3]
-            })
-
-        return jsonify(users)
-
-    except Exception as e:
-        return {"error": str(e)}, 500
+    return render_template_string(form_html)
 
 
-# ✅ Health check (important for Kubernetes)
+# 🔹 USERS PAGE (HTML TABLE)
+@app.route("/users")
+def users():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users")
+    rows = cursor.fetchall()
+    conn.close()
+
+    html = "<h2>User List</h2><table border=1><tr><th>ID</th><th>Name</th><th>Phone</th><th>Email</th></tr>"
+    for r in rows:
+        html += f"<tr><td>{r[0]}</td><td>{r[1]}</td><td>{r[2]}</td><td>{r[3]}</td></tr>"
+    html += "</table><br><a href='/home'>Add More</a>"
+
+    return html
+
+
+# 🔹 HEALTH
 @app.route("/health")
 def health():
     return {"status": "UP"}
 
 
-# Optional info endpoint
 @app.route("/services")
 def service():
-    return "We store user data in DB"
+        html = "<h1>We store user data in DB</h1>"
+    return html
 
 
 if __name__ == "__main__":
