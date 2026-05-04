@@ -94,7 +94,7 @@ def health():
 
 @app.route("/services")
 def service():
-        html = "<h1>We store user data in DB</h1>"
+    html = "<h1>We store user data in DB</h1>"
     return html
 
 
