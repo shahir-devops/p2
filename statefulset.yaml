@@ -95,3 +95,10 @@ spec:
             name:  pythonsvc
             port:
               number: 80
+      - path: /services
+        pathType: Prefix
+        backend:
+          service: 
+            name:  pythonsvc
+            port:
+              number: 80
